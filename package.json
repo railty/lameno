@@ -1,0 +1,22 @@
+{
+  "name": "lameno",
+  "version": "1.0.0",
+  "description": "wrap lamejs into a node module",
+  "main": "lamejs/lamejs.js",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha --reporter spec"
+  },
+  "keywords": [
+    "lame",
+    "mp3",
+    "node",
+    "npm",
+    "encoder"
+  ],
+  "author": "shawn ning",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^3.3.0",
+    "mocha": "^2.3.3"
+  }
+}
