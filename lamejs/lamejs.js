@@ -68,7 +68,7 @@ function ID3Tag() {
 
 function Mp3Encoder(channels, samplerate, kbps) {
     if (arguments.length != 3) {
-        console.error('WARN: Mp3Encoder(channels, samplerate, kbps) not specified');
+        console.error('WARN: Mp3Encoder(channels, samplerate, kbps) not specified, uder default 1, 44100, 128 instead');
         channels = 1;
         samplerate = 44100;
         kbps = 128;
