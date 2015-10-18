@@ -206,6 +206,10 @@ function AiffHeader() {
     this.sampleRate = 0;
     this.sampleFrames = 0;
     this.sampleSize = 0;
+
+    this.left = new Int16Array(0);
+    this.right = new Int16Array(0);
+
 }
 
 AiffHeader.FORM = fourccToInt("FORM");
@@ -241,6 +245,10 @@ AiffHeader.readHeader = function (dataView) {
             w.sampleSize = dataView.getUint16(pos + 6, false);
             //need to implement float 80
             //w.sampleRate = dataView.getFloat80(pos + 8, true);
+
+            w.sampleRate = dataView.getUint16(pos + 10, false);
+            console.log("channels is " + w.channels);
+            console.log("sample rate is " + w.sampleRate);
             break;
         default:
             throw 'extended fmt chunk not implemented';
@@ -259,7 +267,15 @@ AiffHeader.readHeader = function (dataView) {
     }
     w.dataLen = len;
     w.dataOffset = pos + 8;
-    console.log(w);
+
+    w.left = new Int16Array(w.sampleFrames);
+    w.right = new Int16Array(w.sampleFrames);
+    var offset = w.dataOffset;
+    for (var i=0; i<w.sampleFrames; i++){
+      w.left[i] = dataView.getUint16(offset + i*4, false);
+      w.right[i] = dataView.getUint16(offset + i*4 + 2, false);
+    }
+
     return w;
 };
 
