@@ -138,15 +138,15 @@ function Mp3Encoder(channels, samplerate, kbps) {
     };
 }
 
+function fourccToInt(fourcc) {
+    return fourcc.charCodeAt(0) << 24 | fourcc.charCodeAt(1) << 16 | fourcc.charCodeAt(2) << 8 | fourcc.charCodeAt(3);
+}
+
 function WavHeader() {
     this.dataOffset = 0;
     this.dataLen = 0;
     this.channels = 0;
     this.sampleRate = 0;
-}
-
-function fourccToInt(fourcc) {
-    return fourcc.charCodeAt(0) << 24 | fourcc.charCodeAt(1) << 16 | fourcc.charCodeAt(2) << 8 | fourcc.charCodeAt(3);
 }
 
 WavHeader.RIFF = fourccToInt("RIFF");
@@ -196,7 +196,75 @@ WavHeader.readHeader = function (dataView) {
     return w;
 };
 
+// http://muratnkonar.com/aiff/aboutiff.html
+// http://muratnkonar.com/aiff/index.html
+function AiffHeader() {
+    this.dataOffset = 0;
+    this.dataLen = 0;
+
+    this.channels = 0;
+    this.sampleRate = 0;
+    this.sampleFrames = 0;
+    this.sampleSize = 0;
+}
+
+AiffHeader.FORM = fourccToInt("FORM");
+AiffHeader.AIFF = fourccToInt("AIFF");
+AiffHeader.COMM = fourccToInt("COMM");
+AiffHeader.SSND = fourccToInt("SSND");
+
+AiffHeader.readHeader = function (dataView) {
+    var w = new AiffHeader();
+
+    var header = dataView.getUint32(0, false);
+
+    if (AiffHeader.FORM != header) {
+        return;
+    }
+
+    var fileLen = dataView.getUint32(4, true);
+    if (AiffHeader.AIFF != dataView.getUint32(8, false)) {
+        return;
+    }
+
+    if (AiffHeader.COMM != dataView.getUint32(12, false)) {
+        return;
+    }
+    var commLen = dataView.getUint32(16, false);
+    var pos = 16 + 4;
+
+    switch (commLen) {
+        case 16:
+        case 18:
+            w.channels = dataView.getUint16(pos + 0, false);
+            w.sampleFrames = dataView.getUint32(pos + 2, false);
+            w.sampleSize = dataView.getUint16(pos + 6, false);
+            //need to implement float 80
+            //w.sampleRate = dataView.getFloat80(pos + 8, true);
+            break;
+        default:
+            throw 'extended fmt chunk not implemented';
+            break;
+    }
+    pos += commLen;
+    var data = AiffHeader.SSND;
+    var len = 0;
+    while (data != header) {
+        header = dataView.getUint32(pos, false);
+        len = dataView.getUint32(pos + 4, false);
+        if (data == header) {
+            break;
+        }
+        pos += (len + 8);
+    }
+    w.dataLen = len;
+    w.dataOffset = pos + 8;
+    console.log(w);
+    return w;
+};
+
 module.exports = {
   WavHeader: WavHeader,
+  AiffHeader: AiffHeader,
   Mp3Encoder: Mp3Encoder
 }

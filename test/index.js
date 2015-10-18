@@ -82,15 +82,17 @@ describe('Test Full length 44100', function() {
   });
 });
 
-describe('Test Aiff', function() {
+describe.only('Test Aiff', function() {
+  this.timeout(15000);
   it('should work', function() {
     var fs = require('fs');
     var r = fs.readFileSync(datapath + "Piano.ff.C4.aiff");
     var sampleBuf = new Uint8Array(r).buffer;
-    var w = lamejs.WavHeader.readHeader(new DataView(sampleBuf));
+    var w = lamejs.AiffHeader.readHeader(new DataView(sampleBuf));
     var samples = new Int16Array(sampleBuf, w.dataOffset, w.dataLen / 2);
     var remaining = samples.length;
-    var lameEnc = new lamejs.Mp3Encoder(); //w.channels, w.sampleRate, 128);
+    console.log(remaining)
+    var lameEnc = new lamejs.Mp3Encoder(2, 44100, 128); //w.channels, w.sampleRate, 128);
     var maxSamples = 1152;
 
     var fd = fs.openSync(outputpath + "Piano.ff.C4.mp3", "w");
