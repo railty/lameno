@@ -5,5 +5,5 @@ ls.scan(/href="(.*)" /).each do |l|
   url = l[0]
   url.gsub!(' ', '%20')
   puts "curl -O http://theremin.music.uiowa.edu/#{url}"
-  #`curl -O http://theremin.music.uiowa.edu/#{url}`
+  `curl -O http://theremin.music.uiowa.edu/#{url}`
 end

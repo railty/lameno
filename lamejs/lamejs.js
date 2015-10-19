@@ -198,7 +198,7 @@ WavHeader.readHeader = function (dataView) {
 
 // http://muratnkonar.com/aiff/aboutiff.html
 // http://muratnkonar.com/aiff/index.html
-function AiffHeader() {
+function Aiff() {
     this.dataOffset = 0;
     this.dataLen = 0;
 
@@ -207,31 +207,40 @@ function AiffHeader() {
     this.sampleFrames = 0;
     this.sampleSize = 0;
 
+    this.kbps = 128;
+
     this.left = new Int16Array(0);
     this.right = new Int16Array(0);
 
 }
 
-AiffHeader.FORM = fourccToInt("FORM");
-AiffHeader.AIFF = fourccToInt("AIFF");
-AiffHeader.COMM = fourccToInt("COMM");
-AiffHeader.SSND = fourccToInt("SSND");
+Aiff.FORM = fourccToInt("FORM");
+Aiff.AIFF = fourccToInt("AIFF");
+Aiff.COMM = fourccToInt("COMM");
+Aiff.SSND = fourccToInt("SSND");
 
-AiffHeader.readHeader = function (dataView) {
-    var w = new AiffHeader();
+Aiff.readFile = function(filename) {
+  var fs = require('fs');
+  var r = fs.readFileSync(filename);
+  var sampleBuf = new Uint8Array(r).buffer;
+  return Aiff.readDataView(new DataView(sampleBuf));
+}
+
+Aiff.readDataView = function(dataView) {
+    var w = new Aiff();
 
     var header = dataView.getUint32(0, false);
 
-    if (AiffHeader.FORM != header) {
+    if (Aiff.FORM != header) {
         return;
     }
 
     var fileLen = dataView.getUint32(4, true);
-    if (AiffHeader.AIFF != dataView.getUint32(8, false)) {
+    if (Aiff.AIFF != dataView.getUint32(8, false)) {
         return;
     }
 
-    if (AiffHeader.COMM != dataView.getUint32(12, false)) {
+    if (Aiff.COMM != dataView.getUint32(12, false)) {
         return;
     }
     var commLen = dataView.getUint32(16, false);
@@ -245,17 +254,15 @@ AiffHeader.readHeader = function (dataView) {
             w.sampleSize = dataView.getUint16(pos + 6, false);
             //need to implement float 80
             //w.sampleRate = dataView.getFloat80(pos + 8, true);
-
+            //simple but realisic way to read the float 80
             w.sampleRate = dataView.getUint16(pos + 10, false);
-            console.log("channels is " + w.channels);
-            console.log("sample rate is " + w.sampleRate);
             break;
         default:
             throw 'extended fmt chunk not implemented';
             break;
     }
     pos += commLen;
-    var data = AiffHeader.SSND;
+    var data = Aiff.SSND;
     var len = 0;
     while (data != header) {
         header = dataView.getUint32(pos, false);
@@ -279,8 +286,69 @@ AiffHeader.readHeader = function (dataView) {
     return w;
 };
 
+Aiff.prototype.to_mp3 = function(filename, verbose) {
+  if (verbose) console.log("start converting to mp3 ...");
+  var lameEnc = new Mp3Encoder(this.channels, this.sampleRate, this.kbps); //w.channels, w.sampleRate, 128);
+  var maxSamples = 1152;
+  var remaining = this.left.length;
+  var fd = fs.openSync(filename, "w");
+  var time = new Date().getTime();
+  for (var i = 0; remaining >= maxSamples; i += maxSamples) {
+      var left = this.left.subarray(i, i + maxSamples);
+      var right = this.right.subarray(i, i + maxSamples);
+
+      var mp3buf = lameEnc.encodeBuffer(left, right);
+
+      if (mp3buf.length > 0) {
+          fs.writeSync(fd, new Buffer(mp3buf), 0, mp3buf.length);
+      }
+      remaining -= maxSamples;
+
+      if (verbose) process.stdout.write((Math.round((this.left.length-remaining)/this.left.length*100) + "% done\r"));
+  }
+  fs.closeSync(fd);
+
+  time = new Date().getTime() - time;
+  if (verbose) console.log('done in ' + time + 'msec');
+
+}
+
+Aiff.prototype.toString = function(){
+  return 'sample rate = ' + this.sampleRate + ' channels = ' + this.channels;
+};
+
+Aiff.prototype.trim = function(percent){
+  percent = parseFloat(percent);
+  if (isNaN(percent)) percent = 0;
+console.log(percent);
+console.log(this.left.length);
+  var leftMax = 0;
+  var rightMax = 0;
+  for (var i=0; i<this.left.length; i++) if (this.left[i]>leftMax) leftMax = this.left[i];
+  for (var i=0; i<this.right.length; i++) if (this.right[i]>rightMax) rightMax = this.right[i];
+
+  //console.log(leftMax);
+  //console.log(rightMax);
+
+  var leftGate = leftMax*percent;
+  var rightGate = rightMax*percent;
+  console.log(leftGate);
+  console.log(rightGate);
+
+  var iBegin = 0;
+  var iEnd = this.sampleFrames-1;
+  while ((this.left[iBegin]<=leftGate)&&(this.right[iBegin]<=rightGate)) {
+    iBegin++;
+  }
+  while ((this.left[iEnd]<=leftGate)&&(this.right[iEnd]<=rightGate)) iEnd--;
+  console.log(iBegin);
+  console.log(iEnd);
+  this.left = this.left.subarray(iBegin, iEnd);
+  this.right = this.right.subarray(iBegin, iEnd);
+};
+
 module.exports = {
   WavHeader: WavHeader,
-  AiffHeader: AiffHeader,
+  Aiff: Aiff,
   Mp3Encoder: Mp3Encoder
 }

@@ -82,37 +82,31 @@ describe('Test Full length 44100', function() {
   });
 });
 
-describe.only('Test Aiff', function() {
+describe('Test Aiff', function() {
   this.timeout(15000);
   it('should work', function() {
+    var aiff = lamejs.Aiff.readFile(datapath + "Piano.ff.C4.aiff");
+    console.log("aiff:" + aiff);
+    aiff.trim(0.01);
+    aiff.to_mp3(outputpath + "Piano.ff.C4.mp3", 1);
+  });
+});
+
+describe.only('Convert all Aiff to mp3', function() {
+  this.timeout(36000000);
+  it('should work', function() {
     var fs = require('fs');
-    var r = fs.readFileSync(datapath + "Piano.ff.C4.aiff");
-    var sampleBuf = new Uint8Array(r).buffer;
-    var w = lamejs.AiffHeader.readHeader(new DataView(sampleBuf));
-    var remaining = w.left.length;
-    console.log(remaining)
-    var lameEnc = new lamejs.Mp3Encoder(w.channels, w.sampleRate, 128); //w.channels, w.sampleRate, 128);
-    var maxSamples = 1152;
-
-    var fd = fs.openSync(outputpath + "Piano.ff.C4.mp3", "w");
-    var time = new Date().getTime();
-    for (var i = 0; remaining >= maxSamples; i += maxSamples) {
-        var left = w.left.subarray(i, i + maxSamples);
-        var right = w.right.subarray(i, i + maxSamples);
-
-        var mp3buf = lameEnc.encodeBuffer(left, right);
-        if (mp3buf.length > 0) {
-            fs.writeSync(fd, new Buffer(mp3buf), 0, mp3buf.length);
-        }
-        remaining -= maxSamples;
-    }
-    var mp3buf = lameEnc.flush();
-    if (mp3buf.length > 0) {
-        fs.writeSync(fd, new Buffer(mp3buf), 0, mp3buf.length);
-    }
-    fs.closeSync(fd);
-    time = new Date().getTime() - time;
-    console.log('done in ' + time + 'msec');
+    var aiffs = fs.readdirSync(datapath);
+    aiffs = aiffs.filter(function(filename){
+      return filename.indexOf('.aiff', filename.length - 5) !== -1;
+    });
+    aiffs.forEach(function(filename){
+      console.log(filename);
+      var aiff = lamejs.Aiff.readFile(datapath + filename);
+      console.log("aiff:" + aiff);
+      aiff.trim(0.05);
+      aiff.to_mp3(outputpath + filename + ".mp3", 1);
+    });
 
   });
 });
