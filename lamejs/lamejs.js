@@ -314,14 +314,13 @@ Aiff.prototype.to_mp3 = function(filename, verbose) {
 }
 
 Aiff.prototype.toString = function(){
-  return 'sample rate = ' + this.sampleRate + ' channels = ' + this.channels;
+  return 'sample rate=' + this.sampleRate + ' channels=' + this.channels + ' left=' + this.left.length + ' right=' + this.right.length;
 };
 
 Aiff.prototype.trim = function(percent){
   percent = parseFloat(percent);
   if (isNaN(percent)) percent = 0;
-console.log(percent);
-console.log(this.left.length);
+
   var leftMax = 0;
   var rightMax = 0;
   for (var i=0; i<this.left.length; i++) if (this.left[i]>leftMax) leftMax = this.left[i];
@@ -332,8 +331,8 @@ console.log(this.left.length);
 
   var leftGate = leftMax*percent;
   var rightGate = rightMax*percent;
-  console.log(leftGate);
-  console.log(rightGate);
+  //console.log(leftGate);
+  //console.log(rightGate);
 
   var iBegin = 0;
   var iEnd = this.sampleFrames-1;
@@ -341,10 +340,17 @@ console.log(this.left.length);
     iBegin++;
   }
   while ((this.left[iEnd]<=leftGate)&&(this.right[iEnd]<=rightGate)) iEnd--;
-  console.log(iBegin);
-  console.log(iEnd);
+  //console.log(iBegin);
+  //console.log(iEnd);
   this.left = this.left.subarray(iBegin, iEnd);
   this.right = this.right.subarray(iBegin, iEnd);
+};
+
+Aiff.prototype.limit = function(ms){
+  var n = ms * this.sampleRate / 1000;
+  console.log(n);
+  this.left = this.left.subarray(0, n);
+  this.right = this.right.subarray(0, n);
 };
 
 module.exports = {

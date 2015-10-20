@@ -100,14 +100,21 @@ describe.only('Convert all Aiff to mp3', function() {
     aiffs = aiffs.filter(function(filename){
       return filename.indexOf('.aiff', filename.length - 5) !== -1;
     });
-    aiffs.forEach(function(filename){
+    var n = 0;
+    for (var filename of aiffs) {
       console.log(filename);
       var aiff = lamejs.Aiff.readFile(datapath + filename);
       console.log("aiff:" + aiff);
       aiff.trim(0.05);
-      aiff.to_mp3(outputpath + filename + ".mp3", 1);
-    });
+      console.log("aiff:" + aiff);
+      aiff.limit(3000);
+      console.log("aiff:" + aiff);
+      var tone = filename.replace('Piano.ff.', '').replace('.aiff', '');
+      aiff.to_mp3(outputpath + tone + ".mp3", 'verbose');
 
+      n++;
+      //if (n>3) break;
+    }
   });
 });
 
